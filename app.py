@@ -3,56 +3,65 @@ from transformers import pipeline
 from gtts import gTTS
 import os
 
-# 1. Page Config
+# --- PAGE SETUP ---
 st.set_page_config(page_title="Vibe-Shift Engine", page_icon="🧬")
 st.title("🧬 Vibe-Shift: The Zero-Token Engine")
 st.markdown("---")
 
-# 2. Load the NLP Model (Local Inference)
+# --- LOAD LOCAL MODEL ---
 @st.cache_resource
-def load_model():
-    # We use Flan-T5 because it's an 'Instruction-Tuned' model
+def load_local_nlp():
+    # google/flan-t5-base is ideal for zero-token local execution
     return pipeline("text2text-generation", model="google/flan-t5-base")
 
-vibe_ai = load_model()
+st_model = load_local_nlp()
 
-# 3. Sidebar for Mode Selection
-st.sidebar.header("NLP Settings")
-mode = st.sidebar.radio("Translation Direction:", 
-                       ["Boring ➡️ Gen Z", "Gen Z ➡️ Boring"])
+# --- SIDEBAR & INPUT ---
+mode = st.sidebar.radio("NLP Task", ["Professional ➡️ Gen Z", "Gen Z ➡️ Boomer (Explain)"])
+user_text = st.text_area("Input Text", placeholder="Enter your text here...")
 
-# 4. User Input
-user_text = st.text_area("Enter text to transform:", placeholder="Type here...")
-
-if st.button("✨ Transform Vibe"):
+if st.button("Execute Vibe Shift"):
     if user_text.strip():
-        with st.spinner("Processing semantics..."):
+        with st.spinner("AI is analyzing context..."):
             
-            # 5. Advanced Prompt Engineering
-            # We add clear markers so the AI knows what is a command and what is data
-            if mode == "Boring ➡️ Gen Z":
-                input_prompt = f"Rewrite this in heavy Gen Z slang: {user_text}"
+            # 1. FEW-SHOT PROMPTING LOGIC
+            if mode == "Professional ➡️ Gen Z":
+                # Providing examples teaches the model the style
+                prompt = f"""
+                Translate formal English into Gen Z internet slang.
+                Formal: I am very tired. -> Slang: I am straight cooked, fr.
+                Formal: That is excellent. -> Slang: That is bussin, no cap.
+                Formal: I am telling the truth. -> Slang: I'm for real, on god.
+                Formal: {user_text} -> Slang:
+                """
             else:
-                input_prompt = f"Explain this Gen Z slang in formal English: {user_text}"
+                prompt = f"""
+                Translate Gen Z slang into formal, academic English.
+                Slang: No cap, that's mid. -> Formal: Honestly, that is of average quality.
+                Slang: He has rizz. -> Formal: He possesses great charisma.
+                Slang: Stop yapping. -> Formal: Please cease this unnecessary talking.
+                Slang: {user_text} -> Formal:
+                """
 
-            # 6. Model Inference with Anti-Repetition logic
-            output = vibe_ai(
-                input_prompt, 
-                max_length=50,
-                repetition_penalty=3.0, # Forces the AI to use new words
-                do_sample=True,          # Makes it creative
-                temperature=0.8          # Higher temperature = more 'vibe'
+            # 2. MODEL INFERENCE
+            output = st_model(
+                prompt, 
+                max_new_tokens=50, 
+                repetition_penalty=3.5, # Stops the AI from repeating your words
+                do_sample=True,         # Adds variety
+                temperature=0.8         # Controls creativity
             )
             
-            result = output[0]['generated_text']
+            # Clean the output to remove any remaining prompt text
+            result = output[0]['generated_text'].strip()
 
-            # 7. Display Result
+            # --- DISPLAY ---
             st.subheader("Shifted Result:")
             st.success(result)
             
-            # 8. Speech Output
+            # Audio output
             tts = gTTS(text=result, lang='en')
-            tts.save("vibe.mp3")
-            st.audio("vibe.mp3")
+            tts.save("vibe_output.mp3")
+            st.audio("vibe_output.mp3")
     else:
-        st.warning("Please enter some yapping first!")
+        st.error("Please enter some text, bestie.")
