@@ -3,44 +3,56 @@ from transformers import pipeline
 from gtts import gTTS
 import os
 
-# --- PAGE SETUP ---
+# 1. Page Config
 st.set_page_config(page_title="Vibe-Shift Engine", page_icon="🧬")
 st.title("🧬 Vibe-Shift: The Zero-Token Engine")
-st.markdown("*Local NLP Inference — No API Keys Required*")
+st.markdown("---")
 
-# --- LOCAL MODEL LOADING (CACHED) ---
+# 2. Load the NLP Model (Local Inference)
 @st.cache_resource
-def load_local_nlp():
-    # We use 'base' instead of 'large' to save memory on Streamlit's free tier
+def load_model():
+    # We use Flan-T5 because it's an 'Instruction-Tuned' model
     return pipeline("text2text-generation", model="google/flan-t5-base")
 
-st_model = load_local_nlp()
+vibe_ai = load_model()
 
-# --- INPUT SECTION ---
-mode = st.radio("Select NLP Task", ["Professional ➡️ Gen Z", "Gen Z ➡️ Boomer (Explain)"])
-user_text = st.text_area("Input Text", placeholder="Enter yapping here...")
+# 3. Sidebar for Mode Selection
+st.sidebar.header("NLP Settings")
+mode = st.sidebar.radio("Translation Direction:", 
+                       ["Boring ➡️ Gen Z", "Gen Z ➡️ Boring"])
 
-if st.button("Execute Vibe Shift"):
-    if user_text:
-        with st.spinner("AI is thinking locally..."):
-            # We create a 'Prompt' that the model understands
-            if mode == "Professional ➡️ Gen Z":
-                # Instruction Tuning: We tell the model exactly what the 'target domain' is
-                prompt = f"Translate this formal text into funny Gen Z internet slang like 'no cap' and 'fr': {user_text}"
+# 4. User Input
+user_text = st.text_area("Enter text to transform:", placeholder="Type here...")
+
+if st.button("✨ Transform Vibe"):
+    if user_text.strip():
+        with st.spinner("Processing semantics..."):
+            
+            # 5. Advanced Prompt Engineering
+            # We add clear markers so the AI knows what is a command and what is data
+            if mode == "Boring ➡️ Gen Z":
+                input_prompt = f"Rewrite this in heavy Gen Z slang: {user_text}"
             else:
-                prompt = f"Explain this Gen Z slang in very formal, academic English: {user_text}"
+                input_prompt = f"Explain this Gen Z slang in formal English: {user_text}"
 
-            # Local Inference
-            result = st_model(prompt, max_length=100)[0]['generated_text']
+            # 6. Model Inference with Anti-Repetition logic
+            output = vibe_ai(
+                input_prompt, 
+                max_length=50,
+                repetition_penalty=3.0, # Forces the AI to use new words
+                do_sample=True,          # Makes it creative
+                temperature=0.8          # Higher temperature = more 'vibe'
+            )
+            
+            result = output[0]['generated_text']
 
-            # --- DISPLAY RESULTS ---
-            st.divider()
+            # 7. Display Result
             st.subheader("Shifted Result:")
             st.success(result)
             
-            # --- AUDIO OUTPUT ---
+            # 8. Speech Output
             tts = gTTS(text=result, lang='en')
-            tts.save("vibe_output.mp3")
-            st.audio("vibe_output.mp3")
+            tts.save("vibe.mp3")
+            st.audio("vibe.mp3")
     else:
-        st.error("Please enter some text first!")
+        st.warning("Please enter some yapping first!")
