@@ -1,0 +1,6 @@
+streamlit
+huggingface_hub
+transformers
+torch
+gTTS
+librosa
